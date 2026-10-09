@@ -30,8 +30,18 @@ parameters:
     type: boolean
     default: true
 
+  - name: runTflintScanning
+    displayName: "Run TFlint Scanning"
+    type: boolean
+    default: true
+
+  - name: runTrivyScanning
+    displayName: "Run Trivy Scanning"
+    type: boolean
+    default: true
+
 variables:
-  terraformVersion: "1.13.5"
+  terraformVersion: "1.16.5"
 
   workingDirectory: '$(System.DefaultWorkingDirectory)/'
 
@@ -73,4 +83,34 @@ stages:
               provider: 'azurerm'
               command: 'validate'
               workingDirectory: '$(workingDirectory)'
+              backendServiceArm: 'ss'
+              backendAzureRmResourceGroupName: 'terraform-state-rg'
+              backendAzureRmStorageAccountName: 'heartfeltstate1234'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'heartfelt.tfstate'
           
+  - stage: scanning
+    displayName: "Scanning Stage"
+    jobs:
+      - job: tflintscanning
+        displayName: "TFLINT"
+        steps:
+
+        - ${{ if eq(parameters.runTflintScanning, true) }}:
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                tflint --init
+                tflint --recursive --format json > tflint-report.json
+
+      - job: trivyscanning
+        displayName: "Trivy Scanning"
+        steps:
+        
+        - ${{ if eq(parameters.runTrivyScanning, true) }}:
+        
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: trivy config --severity HIGH,CRITICAL --exit-code 1 "$(System.DefaultWorkingDirectory)/"
