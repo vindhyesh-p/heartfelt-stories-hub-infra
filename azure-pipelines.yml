@@ -1,0 +1,116 @@
+pool: devops-agent
+
+trigger:
+ branches:
+   include:
+     - main
+     - feature/*
+
+pr:
+  branches:
+    include:
+      - main
+
+parameters:
+  - name: environment
+    displayName: "Target Environment"
+    type: string
+    default: dev
+    values:
+      - dev
+      - prod
+
+  - name: runTerraformFmt
+    displayName: "Run Terraform Format Check"
+    type: boolean
+    default: true
+
+  - name: runTerraformValidate
+    displayName: "Run Terraform Validate"
+    type: boolean
+    default: true
+
+  - name: runTflintScanning
+    displayName: "Run TFlint Scanning"
+    type: boolean
+    default: true
+
+  - name: runTrivyScanning
+    displayName: "Run Trivy Scanning"
+    type: boolean
+    default: true
+
+variables:
+  terraformVersion: "1.16.5"
+
+  workingDirectory: '$(System.DefaultWorkingDirectory)/'
+
+
+stages:
+  - stage: validate
+    displayName: "Validation Stage"
+    jobs:
+      - job: validate
+        displayName: "Validation Stage"
+        steps:
+        - task: TerraformInstaller@1
+          displayName: "Install Terraform"
+          inputs:
+            terraformVersion: "$(terraformVersion)"
+      
+        - ${{ if eq(parameters.runTerraformFmt, true) }}:
+          - task: PowerShell@2
+            displayName: "Terraform Format Check"
+            inputs:
+              targetType: 'inline'
+              script: 'terraform fmt -check -recursive'
+
+        - task: TerraformTask@5
+          displayName: Terraform Init
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            workingDirectory: '$(workingDirectory)'
+            backendServiceArm: 'ss'
+            backendAzureRmResourceGroupName: 'terraform-state-rg'
+            backendAzureRmStorageAccountName: 'heartfeltstate1234'
+            backendAzureRmContainerName: 'tfstate'
+            backendAzureRmKey: 'heartfelt.tfstate'
+
+        - ${{ if eq(parameters.runTerraformValidate, true) }}:
+          - task: TerraformTask@5
+            inputs:
+              provider: 'azurerm'
+              command: 'validate'
+              workingDirectory: '$(workingDirectory)'
+              backendServiceArm: 'ss'
+              backendAzureRmResourceGroupName: 'terraform-state-rg'
+              backendAzureRmStorageAccountName: 'heartfeltstate1234'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'heartfelt.tfstate'
+          
+  - stage: scanning
+    displayName: "Scanning Stage"
+    jobs:
+      - job: tflintscanning
+        displayName: "TFLINT"
+        steps:
+
+        - ${{ if eq(parameters.runTflintScanning, true) }}:
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                tflint --init
+                tflint --recursive --format json > tflint-report.json
+
+      - job: trivyscanning
+        displayName: "Trivy Scanning"
+        steps:
+        
+        - ${{ if eq(parameters.runTrivyScanning, true) }}:
+        
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: trivy config --severity HIGH,CRITICAL --exit-code 1 "$(System.DefaultWorkingDirectory)/"
