@@ -24,6 +24,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
     authorized_ip_ranges = ["49.36.188.136/32"]
   }
 
+
   network_profile {
     network_plugin = "azure"
     network_policy = "azure"
