@@ -20,6 +20,15 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   role_based_access_control_enabled = true
 
+  api_server_access_profile {
+    authorized_ip_ranges = ["49.36.188.136/32"]
+  }
+
+  network_profile {
+    network_plugin = "azure"
+    network_policy = "azure"
+  }
+
   default_node_pool {
     name       = "default"
     node_count = 1
