@@ -40,6 +40,17 @@ parameters:
     type: boolean
     default: true
 
+  - name: runCheckov
+    displayName: "Run Checkov Scanning"
+    type: boolean
+    default: true
+
+  - name: runTerracost
+    displayName: "Run Terracost"
+    type: boolean
+    default: true
+
+
 variables:
   terraformVersion: "1.16.5"
 
@@ -105,12 +116,31 @@ stages:
                 tflint --recursive --format json > tflint-report.json
 
       - job: trivyscanning
-        displayName: "Trivy Scanning"
+        displayName: "Trivy Terraform Security Scan"
         steps:
         
         - ${{ if eq(parameters.runTrivyScanning, true) }}:
         
           - task: PowerShell@2
+            displayName: "Trivy Terraform Security Scan"
             inputs:
               targetType: 'inline'
-              script: trivy config --severity HIGH,CRITICAL --exit-code 1 "$(System.DefaultWorkingDirectory)/"
+              script: trivy config --severity HIGH,CRITICAL --exit-code 1 "$(workingDirectory)"
+
+        - ${{ if eq(parameters.runCheckov, true) }}:
+
+          - task: PowerShell@2
+            displayName: "Checkov Security Scan"
+            inputs:
+              targetType: 'inline'
+              script: checkov -d "$(workingDirectory)"
+
+        - ${{ if eq(parameters.runTerracost, true) }}:
+
+          - task: PowerShell@2
+            displayName: "Terracost Estimation"
+            inputs:
+              targetType: 'inline'
+              script: terracost breakdown --path "$(workingDirectory)"
+
+  # - stage: DevPlan
