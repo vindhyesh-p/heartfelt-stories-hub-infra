@@ -1,0 +1,48 @@
+pool: devops-agent
+
+trigger:
+ branches:
+   include:
+     - main
+     - feature/*
+
+pr:
+  branches:
+    include:
+      - main
+
+parameters:
+  - name: environment
+    displayName: "Target Environment"
+    type: string
+    default: dev
+    values:
+      - dev
+      - prod
+
+  - name: runTerraformFmt
+    displayName: "Run Terraform Format Check"
+    type: boolean
+    default: true
+
+variables:
+  terraformVersion: "1.13.5"
+
+
+stages:
+  - stage: validate
+    displayName: "Validation Stage"
+    jobs:
+      - job: validate
+        displayName: "Validation Stage"
+        steps:
+        - task: TerraformInstaller@1
+          displayName: "Install Terraform"
+          inputs:
+            terraformVersion: "$(terraformVersion)"
+      
+        - ${{ if eq(parameters.runTerraformFmt, true) }}:
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: 'terraform fmt -check -recursive'
