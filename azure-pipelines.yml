@@ -82,7 +82,7 @@ stages:
             provider: 'azurerm'
             command: 'init'
             workingDirectory: '$(workingDirectory)'
-            backendServiceArm: 'heartfelt-new-svc'
+            backendServiceArm: 'devops-svc'
             backendAzureRmResourceGroupName: 'terraform-state-rg'
             backendAzureRmStorageAccountName: 'heartfeltstate1234'
             backendAzureRmContainerName: 'tfstate'
@@ -95,7 +95,7 @@ stages:
               provider: 'azurerm'
               command: 'validate'
               workingDirectory: '$(workingDirectory)'
-              backendServiceArm: 'heartfelt-new-svc'
+              backendServiceArm: 'devops-svc'
               backendAzureRmResourceGroupName: 'terraform-state-rg'
               backendAzureRmStorageAccountName: 'heartfeltstate1234'
               backendAzureRmContainerName: 'tfstate'
@@ -174,7 +174,7 @@ stages:
             provider: 'azurerm'
             command: 'init'
             workingDirectory: '$(workingDirectory)'
-            backendServiceArm: 'heartfelt-new-svc'
+            backendServiceArm: 'devops-svc'
             backendAzureRmResourceGroupName: 'terraform-state-rg'
             backendAzureRmStorageAccountName: 'heartfeltstate1234'
             backendAzureRmContainerName: 'tfstate'
@@ -186,7 +186,7 @@ stages:
             provider: 'azurerm'
             command: 'plan'
             workingDirectory: '$(System.DefaultWorkingDirectory)/'
-            environmentServiceNameAzureRM: 'heartfelt-new-svc'
+            environmentServiceNameAzureRM: 'devops-svc'
 
         - task: PublishPipelineArtifact@1
           inputs:
