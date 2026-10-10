@@ -77,7 +77,7 @@ stages:
               script: 'terraform fmt -check -recursive'
 
         - task: TerraformTask@5
-          displayName: Terraform Init
+          displayName: "Terraform Init"
           inputs:
             provider: 'azurerm'
             command: 'init'
@@ -90,6 +90,7 @@ stages:
 
         - ${{ if eq(parameters.runTerraformValidate, true) }}:
           - task: TerraformTask@5
+            displayName: "Terraform Validate"
             inputs:
               provider: 'azurerm'
               command: 'validate'
@@ -109,6 +110,7 @@ stages:
 
         - ${{ if eq(parameters.runTflintScanning, true) }}:
           - task: PowerShell@2
+            displayName: "TFLINT"
             inputs:
               targetType: 'inline'
               script: |
@@ -127,6 +129,10 @@ stages:
               targetType: 'inline'
               script: trivy config --severity HIGH,CRITICAL --exit-code 1 "$(workingDirectory)"
 
+      - job: checkovscanning
+        displayName: "Checkov Security Scan"
+        steps:
+          
         - ${{ if eq(parameters.runCheckov, true) }}:
 
           - task: PowerShell@2
@@ -134,6 +140,11 @@ stages:
             inputs:
               targetType: 'inline'
               script: checkov -d "$(workingDirectory)"
+
+      - job: terracost
+        displayName: "Terracost Estimation"
+        steps:
+        
 
         - ${{ if eq(parameters.runTerracost, true) }}:
 
@@ -143,4 +154,42 @@ stages:
               targetType: 'inline'
               script: terracost breakdown --path "$(workingDirectory)"
 
-  # - stage: DevPlan
+  - stage: DevPlan
+    displayName: "Development - Terraform Plan"
+    dependsOn: validate
+    condition: and(succeeded(), eq('${{ parameters.environment }}', 'dev'))
+    jobs:
+      - job: TerraformPlan
+        displayName: "Terraform Plan - Dev"
+        steps:
+
+        - task: TerraformInstaller@1
+          displayName: "Install Terraform"
+          inputs:
+            terraformVersion: "$(terraformVersion)"
+
+        - task: TerraformTask@5
+          displayName: "Terraform Init"
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            workingDirectory: '$(workingDirectory)'
+            backendServiceArm: 'ss'
+            backendAzureRmResourceGroupName: 'terraform-state-rg'
+            backendAzureRmStorageAccountName: 'heartfeltstate1234'
+            backendAzureRmContainerName: 'tfstate'
+            backendAzureRmKey: 'heartfelt.tfstate'
+
+        - task: TerraformTask@5
+          displayName: "Terraform Plan - Dev"
+          inputs:
+            provider: 'azurerm'
+            command: 'plan'
+            workingDirectory: '$(System.DefaultWorkingDirectory)/'
+            environmentServiceNameAzureRM: 'ss'
+
+        - task: PublishPipelineArtifact@1
+          inputs:
+            targetPath: '$(System.DefaultWorkingDirectory)/dev.tfplan'
+            artifact: 'terraform-dev-plan'
+            # publishLocation: 'pipeline'
