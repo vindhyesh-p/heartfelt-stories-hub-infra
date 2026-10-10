@@ -195,3 +195,85 @@ stages:
             targetPath: '$(System.DefaultWorkingDirectory)/dev.tfplan'
             artifact: 'terraform-dev-plan'
             publishLocation: 'pipeline'
+
+  - stage: ProdPlan
+    displayName: "Production - Terraform Plan"
+    dependsOn: validate
+    condition: and(succeeded(), eq('${{ parameters.environment }}', 'prod'))
+
+    jobs:
+      - job: TerraformProdPlan
+        displayName: "Terraform Plan - PROD"
+
+        steps:
+
+        - task: TerraformInstaller@1
+          displayName: "Install Terraform"
+          inputs:
+            terraformVersion: "$(terraformVersion)"
+
+        - task: TerraformTask@5
+          displayName: "Terraform Init"
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            workingDirectory: '$(workingDirectory)'
+            backendServiceArm: 'devops-svc'
+            backendAzureRmResourceGroupName: 'terraform-state-rg'
+            backendAzureRmStorageAccountName: 'heartfeltstate1234'
+            backendAzureRmContainerName: 'tfstate'
+            backendAzureRmKey: 'heartfelt.tfstate'
+
+        - task: TerraformTask@5
+          inputs:
+            provider: 'azurerm'
+            command: 'plan'
+            workingDirectory: '$(System.DefaultWorkingDirectory)/'
+            environmentServiceNameAzureRM: 'devops-svc'
+            commandOptions: '-out = prod.tfplan'
+
+        - task: PublishPipelineArtifact@1
+          inputs:
+            targetPath: '$(System.DefaultWorkingDirectory)/prod.tfplan'
+            artifact: 'terraform-prod-plan'
+            publishLocation: 'pipeline'
+
+  - stage: ProdApply
+    displayName: "Production - Terraform Apply"
+    dependsOn: ProdPlan
+    condition: and(succeeded(), eq('${{ parameters.environment }}', 'prod'))
+
+    jobs:
+      - deployment: TerraformProdApply
+        displayName: "Terraform Apply - PROD"
+
+        environment: "heartfelt-prod"
+
+        strategy:
+         runOnce:
+           deploy:
+
+              steps:
+              - task: TerraformInstaller@1
+                displayName: "Install Terraform"
+                inputs:
+                  terraformVersion: "$(terraformVersion)"
+
+              - task: DownloadPipelineArtifact@2
+                displayName: "Download Terraform Plan"
+                inputs:
+                  buildType: 'current'
+                  artifactName: 'terraform-prod-plan'
+                  targetPath: '$(Pipeline.Workspace)/terraform-plan'
+
+              - task: TerraformTask@5
+                displayName: "Terraform Apply - PROD"
+                inputs:
+                  provider: 'azurerm'
+                  command: 'apply'
+                  workingDirectory: '$(System.DefaultWorkingDirectory)/'
+                  commandOptions: '$(Pipeline.Workspace)/terraform-plan//prod.tfplan'
+                  environmentServiceNameAzureRM: 'devops-svc'
+
+        
+        
