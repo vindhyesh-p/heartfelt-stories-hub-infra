@@ -230,7 +230,7 @@ stages:
             command: 'plan'
             workingDirectory: '$(System.DefaultWorkingDirectory)/'
             environmentServiceNameAzureRM: 'devops-svc'
-            commandOptions: '-out = prod.tfplan'
+            commandOptions: '-out=prod.tfplan'
 
         - task: PublishPipelineArtifact@1
           inputs:
@@ -272,7 +272,7 @@ stages:
                   provider: 'azurerm'
                   command: 'apply'
                   workingDirectory: '$(System.DefaultWorkingDirectory)/'
-                  commandOptions: '$(Pipeline.Workspace)/terraform-plan//prod.tfplan'
+                  commandOptions: '$(Pipeline.Workspace)/terraform-plan/prod.tfplan'
                   environmentServiceNameAzureRM: 'devops-svc'
 
         
