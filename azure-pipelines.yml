@@ -45,8 +45,8 @@ parameters:
     type: boolean
     default: true
 
-  - name: runTerracost
-    displayName: "Run Terracost"
+  - name: runInfracost
+    displayName: "Run Infracost"
     type: boolean
     default: true
 
@@ -141,18 +141,18 @@ stages:
               targetType: 'inline'
               script: checkov -d "$(workingDirectory)"
 
-      - job: terracost
-        displayName: "Terracost Estimation"
+      - job: Infracost
+        displayName: "Infracost Estimation"
         steps:
         
 
-        - ${{ if eq(parameters.runTerracost, true) }}:
+        - ${{ if eq(parameters.runInfracost, true) }}:
 
           - task: PowerShell@2
-            displayName: "Terracost Estimation"
+            displayName: "Terraform Cost Estimation"
             inputs:
               targetType: 'inline'
-              script: terracost breakdown --path "$(workingDirectory)"
+              script: infracost breakdown --path "$(workingDirectory)"
 
   - stage: DevPlan
     displayName: "Development - Terraform Plan"
