@@ -187,9 +187,11 @@ stages:
             command: 'plan'
             workingDirectory: '$(System.DefaultWorkingDirectory)/'
             environmentServiceNameAzureRM: 'devops-svc'
+            commandOptions: "-out = '$(System.DefaultWorkingDirectory)/dev.tfplan'"
 
         - task: PublishPipelineArtifact@1
+          displayName: "Publish Terraform Plan"
           inputs:
             targetPath: '$(System.DefaultWorkingDirectory)/dev.tfplan'
             artifact: 'terraform-dev-plan'
-            # publishLocation: 'pipeline'
+            publishLocation: 'pipeline'
